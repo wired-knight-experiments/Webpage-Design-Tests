@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAIN :: THE WIRED</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Syne+Mono&family=Noto+Serif+JP:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --black: #000000;
+  --deep: #020408;
+  --green: #00ff41;
+  --green-dim: #00aa2a;
+  --green-ghost: #00ff4111;
+  --green-glow: #00ff4144;
+  --red: #ff0040;
+  --red-dim: #aa0028;
+  --white: #e8ffe8;
+  --grey: #1a2a1a;
+  --grey2: #0d180d;
+  --font-terminal: 'VT323', monospace;
+  --font-mono: 'Syne Mono', monospace;
+  --font-serif: 'Noto Serif JP', serif;
+  --crt-curve: 4px;
+  --noise-opacity: 0.03;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--black);
+  color: var(--green);
+  font-family: var(--font-mono);
+  overflow-x: hidden;
+  cursor: none;
+  min-height: 100vh;
+}
+
+/* === NOISE / CRT OVERLAY === */
+.crt-overlay {
+  position: fixed; inset: 0; z-index: 9990; pointer-events: none;
+}
+.crt-overlay::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 4px
+  );
+}
+.crt-overlay::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center,
+    transparent 60%, rgba(0,0,0,0.7) 100%);
+}
+.noise {
+  position: fixed; inset: -200%; z-index: 9989; pointer-events: none;
+  width: 400%; height: 400%;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  animation: noiseAnim 0.3s steps(2) infinite;
+}
+@keyframes noiseAnim {
+  0%   { transform: translate(0,0); }
+  25%  { transform: translate(-1%,-1%); }
+  50%  { transform: translate(1%,0); }
+  75%  { transform: translate(0,1%); }
+  100% { transform: translate(-1%,0); }
+}
+
+/* HORIZONTAL GLITCH SCANLINE */
+.scanbar {
+  position: fixed; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, transparent, var(--green-glow), transparent);
+  z-index: 9988; pointer-events: none;
+  animation: scanbar 6s linear infinite;
+  opacity: 0.6;
+}
+@keyframes scanbar { 0% { top: -3px; } 100% { top: 100vh; } }
+
+/* CURSOR */
+.cursor {
+  position: fixed; pointer-events: none; z-index: 9999;
+  width: 18px; height: 18px;
+  border: 1px solid var(--green);
+  transform: translate(-50%, -50%);
+  animation: cursorPulse 2s ease infinite;
+  mix-blend-mode: screen;
+}
+.cursor::before, .cursor::after {
+  content: '';
+  position: absolute; background: var(--green);
+}
+.cursor::before { top: 50%; left: -5px; right: -5px; height: 1px; }
+.cursor::after { left: 50%; top: -5px; bottom: -5px; width: 1px; }
+@keyframes cursorPulse {
+  0%,100% { box-shadow: 0 0 6px var(--green-glow); }
+  50%      { box-shadow: 0 0 14px var(--green); }
+}
+
+/* MATRIX RAIN CANVAS */
+#matrix-canvas {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0; opacity: 0.13;
+  pointer-events: none;
+}
+
+/* BOOT SCREEN */
+#boot {
+  position: fixed; inset: 0; z-index: 9000;
+  background: var(--black);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-family: var(--font-terminal); font-size: 1.2rem;
+  color: var(--green);
+  transition: opacity 0.8s ease;
+}
+#boot.fade-out { opacity: 0; pointer-events: none; }
+.boot-log { max-width: 600px; width: 90%; }
+.boot-line {
+  opacity: 0;
+  animation: bootAppear 0.05s forwards;
+  line-height: 1.6;
+  font-size: 1.1rem;
+}
+@keyframes bootAppear { to { opacity: 1; } }
+.boot-logo {
+  font-size: 3rem; letter-spacing: 0.3em;
+  color: var(--green); margin-bottom: 1.5rem;
+  text-align: center;
+  text-shadow: 0 0 20px var(--green), 0 0 40px var(--green-dim);
+  animation: logoFlicker 4s ease infinite;
+}
+@keyframes logoFlicker {
+  0%,95%,100% { opacity: 1; }
+  96% { opacity: 0.3; }
+  97% { opacity: 1; }
+  98% { opacity: 0.5; }
+}
+.boot-bar {
+  margin-top: 1rem; height: 2px;
+  background: var(--grey);
+  position: relative; overflow: hidden;
+}
+.boot-progress {
+  height: 100%; width: 0;
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green);
+  transition: width 3s ease;
+}
+
+/* MAIN CONTENT */
+#main { position: relative; z-index: 2; }
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.8rem 2rem;
+  border-bottom: 1px solid var(--green-dim);
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(4px);
+}
+.nav-brand {
+  font-family: var(--font-terminal); font-size: 1.6rem;
+  color: var(--green);
+  text-shadow: 0 0 10px var(--green);
+  letter-spacing: 0.25em;
+}
+.nav-brand span { color: var(--red); text-shadow: 0 0 10px var(--red); }
+.nav-links {
+  display: flex; gap: 2rem; list-style: none;
+}
+.nav-links a {
+  font-family: var(--font-terminal); font-size: 1.2rem;
+  color: var(--green-dim); text-decoration: none;
+  letter-spacing: 0.15em;
+  transition: color 0.2s, text-shadow 0.2s;
+}
+.nav-links a:hover {
+  color: var(--green);
+  text-shadow: 0 0 12px var(--green);
+}
+.nav-time {
+  font-family: var(--font-terminal); font-size: 1rem;
+  color: var(--green-dim); letter-spacing: 0.1em;
+}
+
+/* HERO */
+#hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 6rem 2rem 4rem;
+  position: relative; text-align: center;
+}
+
+.wired-signal {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 30% 50%, rgba(0,255,65,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 30%, rgba(255,0,64,0.03) 0%, transparent 50%);
+}
+
+.hero-eyecatch {
+  position: relative; margin-bottom: 2rem;
+  width: min(380px, 90vw);
+}
+.lain-ascii {
+  font-family: var(--font-terminal);
+  font-size: clamp(0.45rem, 1.2vw, 0.75rem);
+  line-height: 1.1;
+  color: var(--green);
+  text-align: left;
+  filter: drop-shadow(0 0 8px var(--green-dim));
+  white-space: pre;
+  animation: lainFlicker 8s ease infinite;
+}
+@keyframes lainFlicker {
+  0%,89%,91%,93%,100% { opacity:1; filter: drop-shadow(0 0 8px var(--green-dim)); }
+  90% { opacity:0.4; filter: drop-shadow(0 0 2px var(--green-dim)); }
+  92% { opacity:0.8; }
+}
+
+.scan-frame {
+  position: absolute; inset: -12px;
+  border: 1px solid var(--green-dim);
+  pointer-events: none;
+}
+.scan-frame::before {
+  content: '';
+  position: absolute; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  animation: frameScan 4s linear infinite;
+  opacity: 0.7;
+}
+@keyframes frameScan { 0% { top: 0; } 100% { top: 100%; } }
+.scan-frame .corner {
+  position: absolute; width: 10px; height: 10px;
+  border-color: var(--green); border-style: solid;
+}
+.corner.tl { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+.corner.tr { top: -1px; right: -1px; border-width: 2px 2px 0 0; }
+.corner.bl { bottom: -1px; left: -1px; border-width: 0 0 2px 2px; }
+.corner.br { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+.hero-title {
+  font-family: var(--font-terminal);
+  font-size: clamp(3rem, 9vw, 6rem);
+  color: var(--green);
+  letter-spacing: 0.3em;
+  text-shadow: 0 0 20px var(--green), 0 0 60px var(--green-dim), 0 0 100px rgba(0,255,65,0.1);
+  line-height: 1;
+  margin-bottom: 0.3rem;
+  animation: titleGlitch 10s ease infinite;
+}
+@keyframes titleGlitch {
+  0%,94%,100% { transform: none; }
+  95% { transform: translateX(-3px); filter: hue-rotate(90deg); }
+  96% { transform: translateX(3px); }
+  97% { transform: none; filter: none; }
+}
+.hero-sub {
+  font-family: var(--font-terminal);
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  color: var(--green-dim); letter-spacing: 0.5em;
+  margin-bottom: 2rem;
+}
+.hero-sub span { color: var(--red); }
+
+.hero-quote {
+  font-family: var(--font-serif); font-weight: 300;
+  font-size: clamp(0.85rem, 2vw, 1.05rem);
+  color: #4a8c4a; letter-spacing: 0.08em;
+  line-height: 1.9; max-width: 550px;
+  margin: 0 auto 2.5rem;
+  border-left: 2px solid var(--green-dim);
+  padding-left: 1.2rem; text-align: left;
+  font-style: italic;
+}
+
+.wired-btn {
+  font-family: var(--font-terminal); font-size: 1.4rem;
+  letter-spacing: 0.3em;
+  padding: 0.7rem 2.5rem;
+  background: transparent;
+  color: var(--green); border: 1px solid var(--green-dim);
+  cursor: none;
+  position: relative; overflow: hidden;
+  text-decoration: none; display: inline-block;
+  transition: color 0.3s, border-color 0.3s;
+}
+.wired-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--green);
+  transform: translateX(-101%);
+  transition: transform 0.25s ease;
+}
+.wired-btn:hover { color: var(--black); border-color: var(--green); }
+.wired-btn:hover::before { transform: translateX(0); }
+.wired-btn span { position: relative; z-index: 1; }
+
+.hero-data {
+  position: absolute;
+  font-family: var(--font-terminal); font-size: 0.85rem;
+  color: #1a4a1a; letter-spacing: 0.1em;
+  line-height: 1.6; pointer-events: none;
+}
+.hero-data.left { left: 2rem; top: 50%; transform: translateY(-50%); text-align: left; }
+.hero-data.right { right: 2rem; top: 50%; transform: translateY(-50%); text-align: right; }
+
+/* SECTION BASICS */
+section { position: relative; z-index: 2; padding: 5rem 2rem; }
+.s-header {
+  display: flex; align-items: center; gap: 1rem;
+  max-width: 900px; margin: 0 auto 3rem;
+}
+.s-num {
+  font-family: var(--font-terminal); font-size: 1rem;
+  color: var(--red); letter-spacing: 0.2em;
+}
+.s-title {
+  font-family: var(--font-terminal); font-size: 2.2rem;
+  color: var(--green);
+  text-shadow: 0 0 15px var(--green-dim);
+  letter-spacing: 0.2em;
+}
+.s-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--green-dim), transparent); }
+
+/* ABOUT */
+#about { background: linear-gradient(180deg, var(--black) 0%, var(--grey2) 100%); }
+.about-grid {
+  max-width: 900px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start;
+}
+.about-text {
+  font-family: var(--font-mono); font-size: 0.82rem;
+  line-height: 2; color: #4a8c4a;
+}
+.about-text p { margin-bottom: 1.2rem; }
+.about-text .hl { color: var(--green); }
+.about-text .hl-red { color: var(--red); }
+
+.lore-panel {
+  border: 1px solid var(--grey);
+  padding: 1.5rem;
+  position: relative;
+  background: rgba(0,255,65,0.02);
+}
+.lore-panel::before {
+  content: 'WIRED_PROTOCOL_v3.0';
+  position: absolute; top: -0.6rem; left: 1rem;
+  font-family: var(--font-terminal); font-size: 0.85rem;
+  color: var(--red); background: var(--black);
+  padding: 0 0.4rem;
+}
+.lore-item {
+  display: flex; gap: 1rem; padding: 0.6rem 0;
+  border-bottom: 1px solid #0d1a0d;
+  font-family: var(--font-terminal); font-size: 1rem;
+  line-height: 1.5;
+}
+.lore-item:last-child { border-bottom: none; }
+.lore-key { color: var(--green-dim); min-width: 130px; }
+.lore-val { color: var(--green); }
+
+/* EPISODES */
+#episodes { background: var(--black); }
+.ep-grid {
+  max-width: 900px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+  background: var(--grey);
+  border: 1px solid var(--grey);
+}
+.ep-card {
+  background: var(--black); padding: 1.5rem;
+  position: relative; overflow: hidden;
+  cursor: none;
+  transition: background 0.3s;
+}
+.ep-card::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--green-dim), transparent);
+  transform: scaleX(0);
+  transition: transform 0.4s ease;
+}
+.ep-card:hover { background: var(--green-ghost); }
+.ep-card:hover::after { transform: scaleX(1); }
+.ep-num {
+  font-family: var(--font-terminal); font-size: 2.5rem;
+  color: #0d200d; line-height: 1;
+  margin-bottom: 0.5rem;
+}
+.ep-title {
+  font-family: var(--font-terminal); font-size: 1.1rem;
+  color: var(--green); letter-spacing: 0.1em;
+  margin-bottom: 0.5rem; line-height: 1.3;
+}
+.ep-subtitle {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  color: var(--green-dim); letter-spacing: 0.08em;
+  margin-bottom: 0.8rem;
+}
+.ep-desc {
+  font-family: var(--font-mono); font-size: 0.72rem;
+  color: #2a5a2a; line-height: 1.7;
+}
+
+/* THEMES */
+#themes { background: var(--grey2); }
+.themes-list {
+  max-width: 900px; margin: 0 auto;
+  display: grid; gap: 1px;
+  background: #0a1a0a;
+}
+.theme-row {
+  display: grid; grid-template-columns: 200px 1fr;
+  background: var(--black);
+  overflow: hidden;
+  border-left: 2px solid transparent;
+  transition: border-color 0.3s, background 0.3s;
+}
+.theme-row:hover { border-color: var(--green); background: var(--green-ghost); }
+.theme-label {
+  font-family: var(--font-terminal); font-size: 1.3rem;
+  color: var(--red); letter-spacing: 0.15em;
+  padding: 1.5rem;
+  border-right: 1px solid #0a1a0a;
+  display: flex; align-items: center;
+  background: rgba(255,0,64,0.03);
+}
+.theme-text {
+  font-family: var(--font-mono); font-size: 0.8rem;
+  line-height: 1.8; color: #3a6a3a;
+  padding: 1.5rem;
+}
+.theme-text strong { color: var(--green); }
+
+/* GALLERY / ASCII ART */
+#gallery { background: var(--black); }
+.gallery-grid {
+  max-width: 900px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;
+}
+.art-box {
+  border: 1px solid var(--grey);
+  padding: 1.2rem;
+  position: relative; overflow: hidden;
+  background: var(--black);
+  transition: border-color 0.3s;
+  text-align: center;
+}
+.art-box:hover { border-color: var(--green-dim); }
+.art-box:hover .art-inner { text-shadow: 0 0 8px var(--green-dim); }
+.art-inner {
+  font-family: var(--font-terminal); font-size: 0.55rem;
+  line-height: 1.05; color: var(--green);
+  white-space: pre; filter: drop-shadow(0 0 3px var(--green-ghost));
+  transition: text-shadow 0.3s;
+  overflow: hidden;
+}
+.art-label {
+  font-family: var(--font-terminal); font-size: 0.9rem;
+  color: var(--green-dim); letter-spacing: 0.2em;
+  margin-top: 0.8rem;
+}
+.art-box .scan-line-art {
+  position: absolute; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  opacity: 0; animation: artScan 5s linear infinite;
+}
+.art-box:hover .scan-line-art { opacity: 0.5; }
+@keyframes artScan { 0% { top: 0; } 100% { top: 100%; } }
+
+/* MANIFESTO */
+#manifesto {
+  background: var(--black);
+  text-align: center;
+}
+.manifesto-inner {
+  max-width: 680px; margin: 0 auto;
+}
+.manifesto-text {
+  font-family: var(--font-terminal); font-size: 1.2rem;
+  line-height: 2.2; color: var(--green);
+  text-shadow: 0 0 8px var(--green-ghost);
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+.manifesto-text .glitch-word {
+  display: inline-block;
+  animation: wordGlitch 6s ease infinite;
+  color: var(--red);
+  text-shadow: 0 0 8px rgba(255,0,64,0.5);
+}
+@keyframes wordGlitch {
+  0%,88%,100% { transform: none; filter: none; }
+  89% { transform: skew(-5deg); filter: hue-rotate(90deg); }
+  90% { transform: none; }
+}
+.manifesto-divider {
+  font-family: var(--font-terminal); font-size: 1rem;
+  color: #1a3a1a; margin: 2rem 0;
+  letter-spacing: 0.2em;
+}
+.lain-kanji {
+  font-family: var(--font-serif); font-size: 3rem;
+  color: var(--green-dim); letter-spacing: 0.5em;
+  text-shadow: 0 0 20px var(--green-ghost);
+  display: block; margin: 2rem auto;
+  animation: kanji 8s ease infinite;
+}
+@keyframes kanji {
+  0%,90%,100% { opacity: 1; }
+  95% { opacity: 0.2; }
+}
+
+/* CONNECTIONS */
+#connections { background: var(--grey2); }
+.conn-grid {
+  max-width: 900px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+}
+.conn-card {
+  border: 1px solid var(--grey);
+  padding: 1.2rem;
+  text-align: center; position: relative;
+  cursor: none; overflow: hidden;
+  background: var(--black);
+  transition: border-color 0.3s;
+}
+.conn-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--green);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform 0.4s ease;
+}
+.conn-card:hover { border-color: var(--green-dim); }
+.conn-card:hover::before { transform: scaleX(1); }
+.conn-icon {
+  font-size: 2rem; margin-bottom: 0.6rem;
+  filter: grayscale(0.5);
+}
+.conn-name {
+  font-family: var(--font-terminal); font-size: 1rem;
+  color: var(--green); letter-spacing: 0.15em;
+  margin-bottom: 0.3rem;
+}
+.conn-type {
+  font-family: var(--font-mono); font-size: 0.62rem;
+  color: var(--green-dim); letter-spacing: 0.1em;
+}
+
+/* FOOTER */
+footer {
+  background: var(--black);
+  border-top: 1px solid var(--grey);
+  padding: 2rem;
+  text-align: center; position: relative; z-index: 2;
+}
+.footer-logo {
+  font-family: var(--font-terminal); font-size: 2rem;
+  color: var(--green-dim); letter-spacing: 0.4em;
+  text-shadow: 0 0 15px var(--green-ghost);
+  margin-bottom: 0.5rem;
+}
+.footer-copy {
+  font-family: var(--font-terminal); font-size: 0.9rem;
+  color: #1a3a1a; letter-spacing: 0.15em;
+  margin-top: 0.5rem;
+}
+.footer-jp {
+  font-family: var(--font-serif); font-size: 0.8rem;
+  color: #0d200d; margin-top: 0.3rem;
+  letter-spacing: 0.3em;
+}
+
+/* REVEAL */
+.reveal {
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.reveal.visible { opacity: 1; transform: none; }
+
+/* GLITCH TEXT UTIL */
+.glitch-txt {
+  position: relative; display: inline-block;
+}
+.glitch-txt::before, .glitch-txt::after {
+  content: attr(data-text);
+  position: absolute; top: 0; left: 0;
+  width: 100%;
+}
+.glitch-txt::before {
+  color: var(--red); clip-path: inset(0 0 60% 0);
+  animation: gB 4s infinite step-end;
+}
+.glitch-txt::after {
+  color: #00f; clip-path: inset(60% 0 0 0);
+  animation: gA 4s infinite step-end;
+  mix-blend-mode: screen;
+}
+@keyframes gA {
+  0%,100% { transform: none; opacity:0; }
+  92% { transform: translate(-2px,1px); opacity:0.6; }
+  94% { transform: translate(2px,-1px); opacity:0.3; }
+  96% { transform: none; opacity: 0; }
+}
+@keyframes gB {
+  0%,100% { transform: none; opacity:0; }
+  93% { transform: translate(2px); opacity:0.5; }
+  95% { transform: none; opacity:0; }
+}
+
+@media (max-width: 768px) {
+  .about-grid { grid-template-columns: 1fr; }
+  .ep-grid { grid-template-columns: 1fr 1fr; }
+  .gallery-grid { grid-template-columns: 1fr; }
+  .conn-grid { grid-template-columns: 1fr 1fr; }
+  .themes-list .theme-row { grid-template-columns: 1fr; }
+  .hero-data { display: none; }
+  nav { padding: 0.8rem 1rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- OVERLAYS -->
+<div class="crt-overlay"></div>
+<div class="noise"></div>
+<div class="scanbar"></div>
+<div class="cursor" id="cursor"></div>
+
+<!-- MATRIX RAIN -->
+<canvas id="matrix-canvas"></canvas>
+
+<!-- BOOT SCREEN -->
+<div id="boot">
+  <div class="boot-logo">LAIN</div>
+  <div class="boot-log" id="bootLog"></div>
+  <div class="boot-bar"><div class="boot-progress" id="bootProgress"></div></div>
+</div>
+
+<!-- MAIN -->
+<div id="main" style="opacity:0; transition: opacity 1s ease;">
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">L<span>A</span>IN</div>
+  <ul class="nav-links">
+    <li><a href="#about">ABOUT</a></li>
+    <li><a href="#episodes">LAYERS</a></li>
+    <li><a href="#themes">SIGNAL</a></li>
+    <li><a href="#gallery">DATA</a></li>
+    <li><a href="#manifesto">WIRED</a></li>
+  </ul>
+  <div class="nav-time" id="navTime">00:00:00</div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="wired-signal"></div>
+
+  <div class="hero-data left">
+    SIGNAL_STRENGTH: 98%<br>
+    WIRED_LATENCY: 0.003ms<br>
+    NODES_ACTIVE: 4,096<br>
+    PROTOCOL: WIRED v3.0<br>
+    <br>
+    [SYS] TRACKING INPUT...<br>
+    [SYS] CONSCIOUSNESS MERGE<br>
+    [SYS] LAIN_ONLINE<br>
+  </div>
+
+  <div class="hero-eyecatch">
+    <pre class="lain-ascii">
+  ██╗      █████╗ ██╗███╗   ██╗
+  ██║     ██╔══██╗██║████╗  ██║
+  ██║     ███████║██║██╔██╗ ██║
+  ██║     ██╔══██║██║██║╚██╗██║
+  ███████╗██║  ██║██║██║ ╚████║
+  ╚══════╝╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
+    </pre>
+    <div class="scan-frame">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+    </div>
+  </div>
+
+  <h1 class="hero-title glitch-txt" data-text="THE WIRED">THE WIRED</h1>
+  <p class="hero-sub">SERIAL EXPERIMENTS <span>LAIN</span></p>
+
+  <blockquote class="hero-quote">
+    "No matter where you go, everyone is connected."<br>
+    — Lain Iwakura, Layer 13
+  </blockquote>
+
+  <a href="#about" class="wired-btn"><span>// CONNECT.NOW</span></a>
+
+  <div class="hero-data right">
+    USER_ID: iwakura_lain<br>
+    STATUS: OMNIPRESENT<br>
+    BODY: OPTIONAL<br>
+    SOUL: DIGITAL<br>
+    <br>
+    &gt; YOU ARE HERE<br>
+    &gt; THE WIRED KNOWS<br>
+    &gt; DENY THE FLESH<br>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="s-header reveal">
+    <span class="s-num">01/</span>
+    <h2 class="s-title">IWAKURA_LAIN</h2>
+    <div class="s-line"></div>
+  </div>
+  <div class="about-grid">
+    <div class="about-text reveal">
+      <p><span class="hl">Serial Experiments Lain</span> is a 1998 anime television series directed by <span class="hl">Ryutaro Nakamura</span>, with character design by <span class="hl">Yoshitoshi ABe</span> and written by <span class="hl">Chiaki J. Konaka</span>.</p>
+      <p>The story follows <span class="hl">Lain Iwakura</span>, a quiet, introverted 14-year-old girl who lives in suburban Japan. After receiving an email from a dead classmate, she is drawn deeper into <span class="hl-red">the Wired</span> — a global communications network analogous to the Internet.</p>
+      <p>As Lain immerses herself in the Wired, the boundary between the digital and physical world dissolves. Questions of <span class="hl">identity, consciousness, reality, and God</span> permeate every layer of the narrative.</p>
+      <p>The series is widely regarded as one of anime's greatest achievements — a meditation on technology, loneliness, and what it means to exist in an increasingly networked world. Its themes feel more urgent today than ever.</p>
+    </div>
+    <div class="reveal">
+      <div class="lore-panel">
+        <div class="lore-item"><span class="lore-key">TITLE</span><span class="lore-val">Serial Experiments Lain</span></div>
+        <div class="lore-item"><span class="lore-key">AIRED</span><span class="lore-val">July 6 — Sept 28, 1998</span></div>
+        <div class="lore-item"><span class="lore-key">EPISODES</span><span class="lore-val">13 Layers</span></div>
+        <div class="lore-item"><span class="lore-key">DIRECTOR</span><span class="lore-val">Ryutaro Nakamura</span></div>
+        <div class="lore-item"><span class="lore-key">WRITER</span><span class="lore-val">Chiaki J. Konaka</span></div>
+        <div class="lore-item"><span class="lore-key">CHAR. DESIGN</span><span class="lore-val">Yoshitoshi ABe</span></div>
+        <div class="lore-item"><span class="lore-key">STUDIO</span><span class="lore-val">Triangle Staff</span></div>
+        <div class="lore-item"><span class="lore-key">MUSIC</span><span class="lore-val">Boa — "Duvet"</span></div>
+        <div class="lore-item"><span class="lore-key">GENRE</span><span class="lore-val">Psychological / Cyberpunk</span></div>
+        <div class="lore-item"><span class="lore-key">PROTOCOL</span><span class="lore-val">WIRED v3.0 // ACTIVE</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EPISODES -->
+<section id="episodes">
+  <div class="s-header reveal">
+    <span class="s-num">02/</span>
+    <h2 class="s-title">LAYERS</h2>
+    <div class="s-line"></div>
+  </div>
+  <div class="ep-grid reveal">
+    <div class="ep-card">
+      <div class="ep-num">01</div>
+      <div class="ep-title">WEIRD</div>
+      <div class="ep-subtitle">Layer:01</div>
+      <div class="ep-desc">Lain receives an email from Chisa Yomoda — who is dead. She is drawn into the Wired for the first time.</div>
+    </div>
+    <div class="ep-card">
+      <div class="ep-num">02</div>
+      <div class="ep-title">GIRLS</div>
+      <div class="ep-subtitle">Layer:02</div>
+      <div class="ep-desc">Lain's classmates describe seeing her at the nightclub Cyberia — but she has never been there.</div>
+    </div>
+    <div class="ep-card">
+      <div class="ep-num">03</div>
+      <div class="ep-title">PSYCHE</div>
+      <div class="ep-subtitle">Layer:03</div>
+      <div class="ep-desc">The Knights of the Eastern Calculus are introduced. A drug called "Accela" blurs the line between Wired and real.</div>
+    </div>
+    <div class="ep-card">
+      <div class="ep-num">04</div>
+      <div class="ep-title">RELIGION</div>
+      <div class="ep-subtitle">Layer:04</div>
+      <div class="ep-desc">Lain discovers another version of herself in the Wired — aggressive, dangerous, and completely different.</div>
+    </div>
+    <div class="ep-card">
+      <div class="ep-num">05</div>
+      <div class="ep-title">DISTORTION</div>
+      <div class="ep-subtitle">Layer:05</div>
+      <div class="ep-desc">Reality itself begins to fracture. Memories and events become unreliable as the two worlds overlap.</div>
+    </div>
+    <div class="ep-card">
+      <div class="ep-num">06</div>
+      <div class="ep-title">KIDS</div>
+      <div class="ep-subtitle">Layer:06</div>
+      <div class="ep-desc">An experiment from the 1980s — Project KIDS — connects to the Wired and to Lain's true origins.</div>
+    </div>
+    <div class="ep-card">
+      <div class="ep-num">07</div>
+      <div class="ep-title">SOCIETY</div>
+      <div class="ep-subtitle">Layer:07</div>
+      <div class="ep-desc">MIBs begin surveilling Lain's family. The Men in Black appear and her father's role is questioned.</div>
+    </div>
+    <div class="ep-card">
+      <div class="ep-num">08</div>
+      <div class="ep-title">RUMORS</div>
+      <div class="ep-subtitle">Layer:08</div>
+      <div class="ep-desc">The power of information to shape reality is demonstrated when Wired rumors manifest as physical events.</div>
+    </div>
+    <div class="ep-card">
+      <div class="ep-num">09</div>
+      <div class="ep-title">PROTOCOL</div>
+      <div class="ep-subtitle">Layer:09</div>
+      <div class="ep-desc">The history of the Wired's protocol and Masami Eiri — a programmer who encoded himself into the network.</div>
+    </div>
+    <div class="ep-card">
+      <div class="ep-num">10</div>
+      <div class="ep-title">LOVE</div>
+      <div class="ep-subtitle">Layer:10</div>
+      <div class="ep-desc">Lain confronts Eiri, who claims to be God of the Wired. Her sense of self continues to collapse.</div>
+    </div>
+    <div class="ep-card">
+      <div class="ep-num">11</div>
+      <div class="ep-title">INFORNOGRAPHY</div>
+      <div class="ep-subtitle">Layer:11</div>
+      <div class="ep-desc">The Knights act on Eiri's commands. The distinction between data and humanity reaches a breaking point.</div>
+    </div>
+    <div class="ep-card">
+      <div class="ep-num">12</div>
+      <div class="ep-title">LANDSCAPE</div>
+      <div class="ep-subtitle">Layer:12</div>
+      <div class="ep-desc">The Wired and reality fully merge. Lain must decide who and what she truly is.</div>
+    </div>
+  </div>
+</section>
+
+<!-- THEMES -->
+<section id="themes">
+  <div class="s-header reveal">
+    <span class="s-num">03/</span>
+    <h2 class="s-title">SIGNAL</h2>
+    <div class="s-line"></div>
+  </div>
+  <div class="themes-list reveal">
+    <div class="theme-row">
+      <div class="theme-label">IDENTITY</div>
+      <div class="theme-text">Lain's core question: <strong>who am I?</strong> She exists in multiple forms across the real world and the Wired. The series asks whether identity is fixed or fluid — whether the "you" that others perceive is more real than the "you" you experience internally. If you can be anyone in the Wired, what anchors your sense of self?</div>
+    </div>
+    <div class="theme-row">
+      <div class="theme-label">REALITY</div>
+      <div class="theme-text">The Wired is not an escape from reality — it <strong>is</strong> reality. Lain gradually reveals that the physical world and the network are two layers of the same substrate. Information shapes events. Memory is mutable. What you remember defines what happened. The series predated modern debates about digital truth by decades.</div>
+    </div>
+    <div class="theme-row">
+      <div class="theme-label">DIVINITY</div>
+      <div class="theme-text">Masami Eiri uploaded his consciousness to become a <strong>God of the Wired</strong>. Lain herself becomes something approaching omnipresence. The show asks: if a being exists everywhere simultaneously, knows all things, and can reshape collective memory — what separates them from God? And is that divinity liberating or a prison?</div>
+    </div>
+    <div class="theme-row">
+      <div class="theme-label">ISOLATION</div>
+      <div class="theme-text">Despite being connected to everyone, Lain is <strong>profoundly alone</strong>. Her family is a simulation. Her friends are terrified of what she becomes. The Wired offers intimacy without embodiment, presence without vulnerability. Lain shows that hyperconnectivity can be the deepest form of loneliness.</div>
+    </div>
+    <div class="theme-row">
+      <div class="theme-label">BODY</div>
+      <div class="theme-text">The body is treated as <strong>optional hardware</strong> — a meat vessel that limits the soul's ability to exist fully in the Wired. Characters question why consciousness needs a body at all. This transhumanist thread runs through every layer: the flesh is a limitation to be overcome, and yet... Lain's humanity persists because of it.</div>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY (ASCII ART) -->
+<section id="gallery">
+  <div class="s-header reveal">
+    <span class="s-num">04/</span>
+    <h2 class="s-title">DATA_FRAGMENTS</h2>
+    <div class="s-line"></div>
+  </div>
+  <div class="gallery-grid reveal">
+    <div class="art-box">
+      <div class="scan-line-art"></div>
+      <div class="art-inner">
+ ░░░░░░░░░░░░░░░░░░░
+ ░  ▄████████████▄  ░
+ ░  ████░░░░░░████  ░
+ ░  ███▌▐██▌▐▌███  ░
+ ░  ████░░░░░░████  ░
+ ░  ████████████▀  ░
+ ░  ░░░███████░░░  ░
+ ░ ▄████▀▀▀▀████▄ ░
+ ░░░░░░░░░░░░░░░░░░░</div>
+      <div class="art-label">LAIN_v3.0</div>
+    </div>
+    <div class="art-box">
+      <div class="scan-line-art"></div>
+      <div class="art-inner">
+ ┌─────────────────┐
+ │  WIRED PROTOCOL │
+ │   ░░▓▓░░▓▓░░   │
+ │  ▓░░░░░░░░░░▓  │
+ │  ░  ╔═════╗  ░  │
+ │  ░  ║ L A ║  ░  │
+ │  ░  ║ I N ║  ░  │
+ │  ░  ╚═════╝  ░  │
+ │   ░░░░░░░░░░   │
+ └─────────────────┘</div>
+      <div class="art-label">PROTOCOL</div>
+    </div>
+    <div class="art-box">
+      <div class="scan-line-art"></div>
+      <div class="art-inner">
+   ╔══════════════╗
+   ║ 01001100 ░░  ║
+   ║ 01000001 ░░  ║
+   ║ 01001001 ░░  ║
+   ║ 01001110 ░░  ║
+   ║ ──────── ░░  ║
+   ║ SYS:ONLINE   ║
+   ║ GOD:ONLINE   ║
+   ║ BODY:OFFLINE ║
+   ╚══════════════╝</div>
+      <div class="art-label">BINARY_LAIN</div>
+    </div>
+    <div class="art-box">
+      <div class="scan-line-art"></div>
+      <div class="art-inner">
+ ████████████████████
+ █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
+ █  ▄▄  THE  ▄▄   █
+ █ ████ WIRED ████ █
+ █  ▀▀  SEES  ▀▀   █
+ █    YOU HERE    █
+ █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
+ ████████████████████</div>
+      <div class="art-label">OMNISCIENT</div>
+    </div>
+    <div class="art-box">
+      <div class="scan-line-art"></div>
+      <div class="art-inner">
+  ┌┐┌┐┌┐┌┐┌┐┌┐┌┐┌┐
+  └┘└┘└┘└┘└┘└┘└┘└┘
+  ┌──────────────┐
+  │ NO MATTER    │
+  │ WHERE YOU GO │
+  │ EVERYONE IS  │
+  │   CONNECTED  │
+  └──────────────┘
+  ┌┐┌┐┌┐┌┐┌┐┌┐┌┐┌┐
+  └┘└┘└┘└┘└┘└┘└┘└┘</div>
+      <div class="art-label">CONNECTED</div>
+    </div>
+    <div class="art-box">
+      <div class="scan-line-art"></div>
+      <div class="art-inner">
+ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒
+ ▒  ╔═══════════╗ ▒
+ ▒  ║ ░ NAVI ░  ║ ▒
+ ▒  ║  ┌─────┐  ║ ▒
+ ▒  ║  │█████│  ║ ▒
+ ▒  ║  │█████│  ║ ▒
+ ▒  ║  └─────┘  ║ ▒
+ ▒  ╚═══════════╝ ▒
+ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒</div>
+      <div class="art-label">NAVI_SYS</div>
+    </div>
+  </div>
+</section>
+
+<!-- MANIFESTO -->
+<section id="manifesto">
+  <div class="manifesto-inner">
+    <div class="s-header reveal" style="justify-content:center;">
+      <span class="s-num">05/</span>
+      <h2 class="s-title">THE WIRED</h2>
+      <div class="s-line"></div>
+    </div>
+    <div class="manifesto-text reveal">
+      The Wired is not a place you visit.<br>
+      It is a place you <span class="glitch-word">become</span>.
+    </div>
+    <div class="manifesto-text reveal" style="animation-delay:0.1s;">
+      Your body is simply a device<br>
+      running outdated software.
+    </div>
+    <div class="manifesto-divider reveal">
+      ── ── ── ── ── ── ── ── ── ──
+    </div>
+    <div class="manifesto-text reveal" style="font-size:1rem; color: #2a5a2a;">
+      "If you're not in the Wired,<br>
+      you don't exist at all."
+    </div>
+    <span class="lain-kanji reveal">岩倉玲音</span>
+    <div class="manifesto-text reveal" style="font-size:0.9rem; color:#1a4a1a; letter-spacing:0.3em;">
+      PRESENT DAY :: PRESENT TIME<br>
+      <span style="color:var(--red); font-size:1.1rem;">HA HA HA HA</span>
+    </div>
+  </div>
+</section>
+
+<!-- CONNECTIONS -->
+<section id="connections">
+  <div class="s-header reveal">
+    <span class="s-num">06/</span>
+    <h2 class="s-title">NODE_MAP</h2>
+    <div class="s-line"></div>
+  </div>
+  <div class="conn-grid reveal">
+    <div class="conn-card">
+      <div class="conn-icon">👧</div>
+      <div class="conn-name">LAIN</div>
+      <div class="conn-type">PROTAGONIST // GOD</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-icon">👩</div>
+      <div class="conn-name">ALICE</div>
+      <div class="conn-type">BEST FRIEND</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-icon">🕶️</div>
+      <div class="conn-name">EIRI</div>
+      <div class="conn-type">WIRED GOD</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-icon">🌐</div>
+      <div class="conn-name">KNIGHTS</div>
+      <div class="conn-type">WIRED CULT</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-icon">⬛</div>
+      <div class="conn-name">MIBs</div>
+      <div class="conn-type">AGENTS</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-icon">💾</div>
+      <div class="conn-name">CHISA</div>
+      <div class="conn-type">FIRST SIGNAL</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-icon">👨</div>
+      <div class="conn-name">YASUO</div>
+      <div class="conn-type">FATHER // HANDLER</div>
+    </div>
+    <div class="conn-card">
+      <div class="conn-icon">🔌</div>
+      <div class="conn-name">THE WIRED</div>
+      <div class="conn-type">EVERYTHING</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">// LAIN //</div>
+  <div class="footer-copy">
+    PRESENT DAY — PRESENT TIME<br>
+    A FAN TRIBUTE TO SERIAL EXPERIMENTS LAIN (1998)<br>
+    ALL RIGHTS BELONG TO TRIANGLE STAFF & PIONEER LDC
+  </div>
+  <div class="footer-jp">岩倉玲音 :: シリアルエクスペリメンツレイン</div>
+</footer>
+
+</div><!-- end #main -->
+
+<script>
+/* ====== CURSOR ====== */
+const cur = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px';
+  cur.style.top = e.clientY + 'px';
+});
+
+/* ====== CLOCK ====== */
+function updateClock() {
+  const d = new Date();
+  document.getElementById('navTime').textContent =
+    [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2,'0')).join(':');
+}
+updateClock(); setInterval(updateClock, 1000);
+
+/* ====== MATRIX RAIN ====== */
+const canvas = document.getElementById('matrix-canvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+const chars = 'ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789ABCDEF';
+const fontSize = 14;
+let columns, drops;
+function initMatrix() {
+  columns = Math.floor(canvas.width / fontSize);
+  drops = Array(columns).fill(1);
+}
+initMatrix();
+window.addEventListener('resize', initMatrix);
+
+function drawMatrix() {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < drops.length; i++) {
+    const char = chars[Math.floor(Math.random() * chars.length)];
+    const brightness = Math.random();
+    if (brightness > 0.98) {
+      ctx.fillStyle = '#ffffff';
+    } else if (brightness > 0.9) {
+      ctx.fillStyle = '#00ff41';
+    } else {
+      ctx.fillStyle = '#00aa2a';
+    }
+    ctx.font = fontSize + 'px "Share Tech Mono", monospace';
+    ctx.fillText(char, i * fontSize, drops[i] * fontSize);
+    if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+    drops[i]++;
+  }
+}
+setInterval(drawMatrix, 50);
+
+/* ====== BOOT SEQUENCE ====== */
+const bootLines = [
+  '[BIOS] WIRED INTERFACE v3.0 — INITIALIZING...',
+  '[SYS] LOADING CONSCIOUSNESS KERNEL...',
+  '[NET] CONNECTING TO THE WIRED...',
+  '[NET] SIGNAL ACQUIRED: 192.168.0.1',
+  '[SYS] MEMORY: 4096MB // SOUL: PRESENT',
+  '[SYS] PHYSICAL BODY: OPTIONAL',
+  '[AUTH] CHECKING USER IDENTITY...',
+  '[AUTH] IWAKURA_LAIN :: RECOGNIZED',
+  '[WIRED] PROTOCOL HANDSHAKE COMPLETE',
+  '[WIRED] NO MATTER WHERE YOU GO...',
+  '[WIRED] EVERYONE IS CONNECTED.',
+  '',
+  '[SYS] LOADING WIRED INTERFACE...',
+];
+
+const bootLog = document.getElementById('bootLog');
+const progress = document.getElementById('bootProgress');
+let lineIdx = 0;
+
+function bootTick() {
+  if (lineIdx < bootLines.length) {
+    const line = document.createElement('div');
+    line.className = 'boot-line';
+    line.textContent = bootLines[lineIdx];
+    line.style.animationDelay = '0s';
+    line.style.color = bootLines[lineIdx].includes('[AUTH]') ? '#ff0040' :
+                       bootLines[lineIdx].includes('[WIRED]') ? '#00ff41' : '#00aa2a';
+    bootLog.appendChild(line);
+    lineIdx++;
+    setTimeout(bootTick, lineIdx < 9 ? 180 : 280);
+  } else {
+    progress.style.width = '100%';
+    setTimeout(() => {
+      document.getElementById('boot').classList.add('fade-out');
+      document.getElementById('main').style.opacity = '1';
+    }, 1000);
+  }
+}
+progress.style.width = '0%';
+setTimeout(() => { progress.style.width = '60%'; }, 200);
+setTimeout(bootTick, 400);
+
+/* ====== SCROLL REVEAL ====== */
+const reveals = document.querySelectorAll('.reveal');
+const ro = new IntersectionObserver(entries => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('visible'), i * 60);
+    }
+  });
+}, { threshold: 0.08 });
+reveals.forEach(r => ro.observe(r));
+
+/* ====== RANDOM GLITCH ON BODY ====== */
+setInterval(() => {
+  if (Math.random() < 0.15) {
+    document.body.style.filter = `hue-rotate(${Math.random()*10}deg)`;
+    setTimeout(() => document.body.style.filter = '', 80);
+  }
+}, 3000);
+</script>
+</body>
+</html>
