@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alex Dev | Systems Architect</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --text: #e0e0e0;
+            --accent: #ccff00; /* Electric Lime */
+            --card-bg: #141414;
+            --border: 2px solid #333;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, .mono {
+            font-family: 'Space Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+        }
+
+        /* Layout Utilities */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-bottom: var(--border);
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 8vw, 6rem);
+            line-height: 0.9;
+            margin-bottom: 1rem;
+        }
+
+        .hero span {
+            color: var(--accent);
+        }
+
+        .tagline {
+            font-size: 1.2rem;
+            color: #888;
+            max-width: 600px;
+        }
+
+        /* Marquee Effect */
+        .marquee {
+            background: var(--accent);
+            color: var(--bg);
+            padding: 1rem 0;
+            overflow: hidden;
+            white-space: nowrap;
+            font-weight: bold;
+            font-family: 'Space Mono', monospace;
+        }
+
+        /* Projects Grid */
+        .grid-section {
+            padding: 5rem 0;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 3rem;
+            border-left: 5px solid var(--accent);
+            padding-left: 1rem;
+        }
+
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: var(--border);
+            padding: 2rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 5px 5px 0px var(--accent);
+            border-color: var(--accent);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            font-size: 1.5rem;
+        }
+
+        .tech-stack {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .tech-tag {
+            font-size: 0.8rem;
+            background: #222;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            color: var(--accent);
+            font-family: 'Space Mono', monospace;
+        }
+
+        /* Skills List */
+        .skills-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .skills-list li {
+            border-bottom: 1px solid #333;
+            padding-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Footer / Contact */
+        .footer {
+            padding: 4rem 0;
+            border-top: var(--border);
+            text-align: center;
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--accent);
+            color: var(--bg);
+            padding: 1rem 2rem;
+            text-decoration: none;
+            font-weight: bold;
+            font-family: 'Space Mono', monospace;
+            border: none;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        .btn:hover {
+            background: #fff;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 3rem; }
+            .container { padding: 0 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Marquee Strip -->
+    <div class="marquee">
+        SYSTEMS ARCHITECT /// CLOUD INFRASTRUCTURE /// DEVOPS /// CYBERSECURITY /// SCALABLE SOLUTIONS ///
+    </div>
+
+    <div class="container">
+        <!-- Hero Section -->
+        <header class="hero">
+            <h1 class="mono">Alex <span class="mono">Dev</span><br>Architect.</h1>
+            <p class="tagline">
+                I build resilient systems that scale. Specializing in cloud-native infrastructure, 
+                automated pipelines, and securing the digital frontier. No fluff, just uptime.
+            </p>
+            <a href="#contact" class="btn">INITIALIZE CONTACT</a>
+        </header>
+
+        <!-- Selected Work -->
+        <section class="grid-section">
+            <h2 class="section-title mono">Selected Deployments</h2>
+            <div class="project-grid">
+                
+                <!-- Project 1 -->
+                <article class="card">
+                    <h3>FinTech Ledger Migration</h3>
+                    <p>Migrated legacy banking core to a serverless architecture, reducing latency by 40% and cutting costs by $2M annually.</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">AWS Lambda</span>
+                        <span class="tech-tag">Terraform</span>
+                        <span class="tech-tag">Go</span>
+                    </div>
+                </article>
+
+                <!-- Project 2 -->
+                <article class="card">
+                    <h3>Zero-Trust Network</h3>
+                    <p>Designed and implemented a zero-trust security model for a healthcare provider, ensuring HIPAA compliance across 50+ microservices.</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Kubernetes</span>
+                        <span class="tech-tag">Istio</span>
+                        <span class="tech-tag">Python</span>
+                    </div>
+                </article>
+
+                <!-- Project 3 -->
+                <article class="card">
+                    <h3>AI Data Pipeline</h3>
+                    <p>Built a real-time ETL pipeline processing 5TB of daily data for predictive analytics models.</p>
+                    <div class="tech-stack">
+                        <span class="tech-tag">Apache Kafka</span>
+                        <span class="tech-tag">Spark</span>
+                        <span class="tech-tag">Docker</span>
+                    </div>
+                </article>
+
+            </div>
+        </section>
+
+        <!-- Tech Stack -->
+        <section class="grid-section">
+            <h2 class="section-title mono">Arsenal</h2>
+            <ul class="skills-list">
+                <li><span>Cloud Providers</span> <span class="mono">AWS / Azure / GCP</span></li>
+                <li><span>Containerization</span> <span class="mono">Docker / K8s</span></li>
+                <li><span>IaC</span> <span class="mono">Terraform / Ansible</span></li>
+                <li><span>Languages</span> <span class="mono">Python / Go / Rust</span></li>
+                <li><span>Security</span> <span class="mono">CISSP / Pen-testing</span></li>
+                <li><span>Monitoring</span> <span class="mono">Prometheus / Grafana</span></li>
+            </ul>
+        </section>
+
+        <!-- Contact -->
+        <footer id="contact" class="footer">
+            <h2 class="mono">Ready to Scale?</h2>
+            <p>Currently accepting new contracts for Q3/Q4 2026.</p>
+            <a href="mailto:alex@example.com" class="btn">SEND ENCRYPTION KEY</a>
+            <br><br>
+            <small class="mono" style="color: #666;">© 2026 Alex Dev. Built with pure code.</small>
+        </footer>
+    </div>
+
+</body>
+</html>
